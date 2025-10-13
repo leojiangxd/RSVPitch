@@ -14,7 +14,7 @@ export default function Login() {
     <div className="min-h-screen bg-muted flex flex-col">
       <Navbar />
       <div className="flex flex-1 items-center justify-center">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md m-2">
           <CardHeader>
             <CardTitle className="text-center text-2xl">Welcome back</CardTitle>
             <CardDescription className="text-center">

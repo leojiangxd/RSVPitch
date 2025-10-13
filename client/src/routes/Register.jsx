@@ -16,7 +16,7 @@ export default function Register() {
     <div className="min-h-screen bg-muted flex flex-col">
       <Navbar />
       <div className="flex flex-1 items-center justify-center">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md m-2">
           <CardHeader>
             <CardTitle className="text-center text-2xl">Create an account</CardTitle>
             <CardDescription className="text-center">
@@ -53,16 +53,16 @@ export default function Register() {
 
               <div className="flex flex-col gap-1">
                 <Label htmlFor="skill-level">Skill Level</Label>
-                <div className="text-xs flex gap-1 items-center">
-                  New
-                  <Slider id="skill-level" defaultValue={[3]} max={4} step={1} className="py-4" />
-                  Pro
+                <div className="text-xs flex gap-1 items-center border border-input rounded-md px-3">
+                  <span className="select-none">New</span>
+                  <Slider id="skill-level" defaultValue={[2]} max={4} step={1} className="py-4" />
+                  <span className="select-none">Pro</span>
                 </div>
               </div>
 
               <div className="flex flex-col gap-1">
                 <Label>Position</Label>
-                <ToggleGroup type="single" className="w-full border border-input">
+                <ToggleGroup variant="outline" type="multiple" className="w-full ">
                   <ToggleGroupItem value="goalie" aria-label="Toggle Goalie">
                     Goalie
                   </ToggleGroupItem>
