@@ -52,7 +52,7 @@ export default function Navbar() {
             <DropdownMenuItem>
               <Link to="/edit">Edit Profile</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleLogout} className="text-red-400 focus:text-red-400">
+            <DropdownMenuItem onClick={handleLogout} variant="destructive">
               Log Out
             </DropdownMenuItem>
           </DropdownMenuContent>
