@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import Searchbar from "./Searchbar";
 
 export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(true);
@@ -21,13 +22,17 @@ export default function Navbar() {
   };
 
   return (
-    <div className="bg-zinc-900 w-full flex items-center p-2 justify-between">
+    <div className="bg-zinc-900 w-full flex items-center p-2 justify-between sticky top-0 z-50">
       {/* Home button */}
       <Button variant="ghost" size="icon" asChild>
         <Link to="/">
           <Home />
         </Link>
       </Button>
+
+      <div className="flex-1 max-w-[50%]">
+        <Searchbar />
+      </div>
 
       {/* Conditionally render UI based on login state */}
       {isLoggedIn ? (
