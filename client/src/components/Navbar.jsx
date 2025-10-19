@@ -22,57 +22,64 @@ export default function Navbar() {
   };
 
   return (
-    <div className="bg-zinc-900 w-full flex items-center p-2 justify-between sticky top-0 z-50">
-      {/* Home button */}
-      <Button variant="ghost" size="icon" asChild>
-        <Link to="/">
-          <Home />
-        </Link>
-      </Button>
+    <div className="bg-zinc-900 w-full flex items-center p-2 justify-between lg:justify-normal sticky top-0 z-50">
+      <div className="lg:flex-1 lg:flex">
+        <Button variant="ghost" size="icon" asChild>
+          <Link to="/">
+            <Home />
+          </Link>
+        </Button>
+      </div>
 
-      <div className="flex-1 max-w-[50%]">
+      <div className="flex-1 max-w-3xl mx-5 lg:flex-none lg:w-full lg:mx-8">
         <Searchbar />
       </div>
 
-      {/* Conditionally render UI based on login state */}
-      {isLoggedIn ? (
-        // LOGGED-IN
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-9 w-9 rounded-full cursor-pointer">
-              <Avatar className="h-9 w-9">
-                <AvatarImage />
-                <AvatarFallback>?</AvatarFallback>
-              </Avatar>
+      <div className="lg:flex-1 lg:flex lg:justify-end">
+        {isLoggedIn ? (
+          // LOGGED-IN
+          <div className="flex items-center space-x-1">
+            <Button type="create" aria-label="Create a game">
+              <Link to="/creategame">Create a game</Link>
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="min-w-40" align="end">
-            <DropdownMenuLabel>
-              <div className="flex flex-col gap-1">
-                <p className="text-sm">Username</p>
-                <p className="text-xs text-muted-foreground">user@example.com</p>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <Link to="/edit">Edit Profile</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleLogout} variant="destructive">
-              Log Out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ) : (
-        // LOGGED OUT
-        <div className="flex gap-1">
-          <Button variant="outline">
-            <Link to="/login">Login</Link>
-          </Button>
-          <Button>
-            <Link to="/register">Register</Link>
-          </Button>
-        </div>
-      )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full cursor-pointer">
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage />
+                    <AvatarFallback>?</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="min-w-40" align="end">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col gap-1">
+                    <p className="text-sm">Username</p>
+                    <p className="text-xs text-muted-foreground">user@example.com</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <Link to="/edit">Edit Profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout} variant="destructive">
+                  Log Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        ) : (
+          // LOGGED OUT
+          <div className="flex gap-1">
+            <Button variant="outline">
+              <Link to="/login">Login</Link>
+            </Button>
+            <Button>
+              <Link to="/register">Register</Link>
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
