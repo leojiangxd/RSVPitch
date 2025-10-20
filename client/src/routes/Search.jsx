@@ -31,7 +31,7 @@ function Search() {
       <Navbar />
       <div className="flex-1">
         <div className="pt-4 text-center text-lg text-muted-foreground">
-          Matches in <span className="text-primary font-bold">{id}</span>
+          Games in <span className="text-primary font-bold">{id}</span>
         </div>
         <div className="flex flex-col gap-4 max-w-3xl mx-auto p-4">
           {dummyEvents.map((event) => (

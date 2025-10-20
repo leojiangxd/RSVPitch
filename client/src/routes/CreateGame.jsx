@@ -15,7 +15,7 @@ export default function CreateGame() {
           <CardHeader>
             <CardTitle className="text-center text-2xl">Create a new game</CardTitle>
             <CardDescription className="text-center">
-              Fill out the details to schedule your match
+              Fill out the details to schedule your game
             </CardDescription>
           </CardHeader>
           <CardContent>

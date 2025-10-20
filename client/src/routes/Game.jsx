@@ -140,7 +140,7 @@ export default function Game() {
           className="w-full max-w-sm cursor-pointer disabled:cursor-not-allowed"
           disabled={isFull}
         >
-          {isFull ? "Match Full" : "Join Match"}
+          {isFull ? "Game Full" : "Join Game"}
         </Button>
       </div>
     </div>
