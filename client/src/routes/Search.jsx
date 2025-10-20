@@ -7,42 +7,33 @@ function Search() {
 
   const dummyEvents = [
     {
-      field: "Central Park Fields",
-      city: "New York",
-      organizer: "NYC Soccer League",
-      date: "October 26, 2025 - 10:00 AM",
-      players: 14,
-      maxPlayers: 16,
       id: 123,
+      field: "Flavet Field",
+      city: "Gainesville",
+      organizer: "asdf",
+      date: "October 28, 2025 - 6:00 PM",
+      playerList: Array.from({ length: 10 }),
+      maxPlayers: 12,
     },
     {
-      field: "Central Park Fields",
-      city: "New York",
-      organizer: "NYC Soccer League",
-      date: "October 26, 2025 - 10:00 AM",
-      players: 14,
-      maxPlayers: 16,
-      id: 1234,
-    },
-    {
-      field: "Central Park Fields",
-      city: "New York",
-      organizer: "NYC Soccer League",
-      date: "October 26, 2025 - 10:00 AM",
-      players: 14,
-      maxPlayers: 16,
-      id: 12345,
+      id: 789,
+      field: "Flavet Field",
+      city: "Gainesville",
+      organizer: "asdf",
+      date: "November 1, 2025 - 11:00 AM",
+      playerList: Array.from({ length: 7 }),
+      maxPlayers: 10,
     },
   ];
 
   return (
-    <div className="w-[100wh] h-[100vh] flex flex-col">
+    <div className="min-h-screen bg-muted flex flex-col">
       <Navbar />
-      <div className="bg-zinc-800 flex-1">
-        <div className="p-2 text-center text-lg text-muted-foreground">
+      <div className="flex-1">
+        <div className="pt-4 text-center text-lg text-muted-foreground">
           Matches in <span className="text-primary font-bold">{id}</span>
         </div>
-        <div className="flex flex-col gap-4 max-w-3xl mx-auto px-4">
+        <div className="flex flex-col gap-4 max-w-3xl mx-auto p-4">
           {dummyEvents.map((event) => (
             <GameCard key={event.id} event={event} />
           ))}

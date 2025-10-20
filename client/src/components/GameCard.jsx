@@ -2,7 +2,7 @@ import { Calendar, User, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function GameCard({ event }) {
-  const { field, city, organizer, date, players, maxPlayers, id } = event;
+  const { field, city, organizer, date, playerList, maxPlayers, id } = event;
 
   return (
     <Link to={`/game/${id}`} className="h-full">
@@ -28,7 +28,7 @@ export default function GameCard({ event }) {
           <div className="flex items-center">
             <Users className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
             <span>
-              {players} / {maxPlayers} players
+              {playerList.length} / {maxPlayers} players
             </span>
           </div>
         </div>
