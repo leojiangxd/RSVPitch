@@ -51,7 +51,7 @@ export default function Navbar() {
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="min-w-40" align="end">
+              <DropdownMenuContent className="min-w-50" align="end">
                 <DropdownMenuLabel>
                   <div className="flex flex-col gap-1">
                     <p className="text-sm">Username</p>

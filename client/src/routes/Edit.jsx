@@ -27,6 +27,11 @@ export default function Edit() {
           <CardContent>
             <form className="flex flex-col gap-2" onSubmit={(e) => e.preventDefault()}>
               <div className="flex flex-col gap-1">
+                <Label htmlFor="name">Name</Label>
+                <Input id="name" type="text" placeholder="Your name" />
+              </div>
+
+              <div className="flex flex-col gap-1">
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" placeholder="email@domain.com" />
               </div>
