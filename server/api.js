@@ -154,14 +154,10 @@ router.post("/users/logout", (req, res) => {
   }
 });
 
-router.put("/users/update/:id", auth, async (req, res) => {
+router.put("/users/update", auth, async (req, res) => {
   try {
-    if (req.user.id !== req.params.id) {
-      return res.status(403).json({ message: "User not authorized" });
-    }
-
     const { email, oldPassword, newPassword, ...otherData } = req.body;
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
@@ -169,7 +165,7 @@ router.put("/users/update/:id", auth, async (req, res) => {
     // Update email
     if (email && email !== user.email) {
       const existingEmail = await User.findOne({ email });
-      if (existingEmail && existingEmail._id.toString() !== req.params.id) {
+      if (existingEmail && existingEmail._id.toString() !== req.user.id) {
         return res.status(400).json({ message: "Email is already in use." });
       }
       user.email = email;
@@ -200,14 +196,10 @@ router.put("/users/update/:id", auth, async (req, res) => {
   }
 });
 
-router.delete("/users/delete/:id", auth, async (req, res) => {
+router.delete("/users/delete", auth, async (req, res) => {
   try {
-    if (req.user.id !== req.params.id) {
-      return res.status(403).json({ message: "User not authorized" });
-    }
-
     // find user by id and delete
-    const user = await User.findByIdAndDelete(req.params.id);
+    const user = await User.findByIdAndDelete(req.user.id);
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
