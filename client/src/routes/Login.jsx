@@ -5,10 +5,35 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/user/login`,
+        { email, password },
+        { withCredentials: true }
+      );
+
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+      window.dispatchEvent(new Event("storage"));
+
+      navigate("/");
+    } catch (err) {
+      setError(err.response?.data?.message || "An unexpected error occurred.");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-muted flex flex-col">
@@ -23,10 +48,17 @@ export default function Login() {
           </CardHeader>
 
           <CardContent>
-            <form className="flex flex-col gap-2" onSubmit={(e) => e.preventDefault()}>
+            <form className="flex flex-col gap-2" onSubmit={handleLogin}>
               <div className="flex flex-col gap-1">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="email@domain.com" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="email@domain.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
               </div>
 
               <div className="flex flex-col gap-1">
@@ -36,6 +68,9 @@ export default function Login() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
                     className="pr-10"
                   />
                   <button
@@ -48,8 +83,10 @@ export default function Login() {
                 </div>
               </div>
 
+              {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+
               <Button type="submit" className="w-full">
-                Sign in
+                Sign In
               </Button>
 
               <div className="text-center text-sm text-muted-foreground">

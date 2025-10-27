@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
-import { Link } from "react-router-dom";
-
-import { useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,10 +15,33 @@ import {
 import Searchbar from "./Searchbar";
 
 export default function Navbar() {
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
+  useEffect(() => {
+    const updateUser = () => {
+      const storedUser = localStorage.getItem("user");
+      setUser(storedUser ? JSON.parse(storedUser) : null);
+    };
+
+    updateUser();
+    window.addEventListener("storage", updateUser);
+
+    return () => {
+      window.removeEventListener("storage", updateUser);
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/user/logout`, {}, { withCredentials: true });
+    } catch (error) {
+      console.error("Logout failed", error);
+    } finally {
+      localStorage.removeItem("user");
+      window.dispatchEvent(new Event("storage"));
+      navigate("/");
+    }
   };
 
   return (
@@ -36,7 +59,7 @@ export default function Navbar() {
       </div>
 
       <div className="lg:flex-1 lg:flex lg:justify-end">
-        {isLoggedIn ? (
+        {user ? (
           // LOGGED-IN
           <div className="flex items-center space-x-1">
             <Button type="create" aria-label="Create a game">
@@ -46,16 +69,15 @@ export default function Navbar() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full cursor-pointer">
                   <Avatar className="h-9 w-9">
-                    <AvatarImage />
-                    <AvatarFallback>?</AvatarFallback>
+                    <AvatarFallback>{user.name?.[0]?.toUpperCase()}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="min-w-50" align="end">
                 <DropdownMenuLabel>
                   <div className="flex flex-col gap-1">
-                    <p className="text-sm">Username</p>
-                    <p className="text-xs text-muted-foreground">user@example.com</p>
+                    <p className="text-sm">{user.name}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />

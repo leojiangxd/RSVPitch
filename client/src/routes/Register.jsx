@@ -5,12 +5,38 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Slider } from "@/components/ui/slider";
+import axios from "axios";
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [skillLevel, setSkillLevel] = useState(2);
+  const [position, setPosition] = useState([]);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/user/register`,
+        { name, email, password, skillLevel, position },
+        { withCredentials: true }
+      );
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+      window.dispatchEvent(new Event("storage"));
+      navigate("/"); // Redirect to home page
+    } catch (err) {
+      setError(err.response?.data?.message || "An unexpected error occurred.");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-muted flex flex-col">
@@ -25,15 +51,29 @@ export default function Register() {
           </CardHeader>
 
           <CardContent>
-            <form className="flex flex-col gap-2" onSubmit={(e) => e.preventDefault()}>
+            <form className="flex flex-col gap-2" onSubmit={handleRegister}>
               <div className="flex flex-col gap-1">
                 <Label htmlFor="name">Name</Label>
-                <Input id="name" type="text" placeholder="Your name" />
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
               </div>
 
               <div className="flex flex-col gap-1">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="email@domain.com" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="email@domain.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
               </div>
 
               <div className="flex flex-col gap-1">
@@ -43,6 +83,9 @@ export default function Register() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Create a strong password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
                     className="pr-10"
                   />
                   <button
@@ -60,22 +103,36 @@ export default function Register() {
                 <Label htmlFor="skill-level">Skill Level</Label>
                 <div className="text-xs flex gap-1 items-center border border-input rounded-md px-3">
                   <span className="select-none">New</span>
-                  <Slider id="skill-level" defaultValue={[2]} max={4} step={1} className="py-4" />
+                  <Slider
+                    id="skill-level"
+                    defaultValue={[2]}
+                    max={4}
+                    step={1}
+                    className="py-4"
+                    onValueChange={(value) => setSkillLevel(value[0])}
+                  />
                   <span className="select-none">Pro</span>
                 </div>
               </div>
 
               <div className="flex flex-col gap-1">
                 <Label>Position</Label>
-                <ToggleGroup variant="outline" type="multiple" className="w-full ">
+                <ToggleGroup
+                  variant="outline"
+                  type="multiple"
+                  className="w-full"
+                  onValueChange={setPosition}
+                >
                   <ToggleGroupItem value="goalie" aria-label="Toggle Goalie">
                     Goalie
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="Outfielder" aria-label="Toggle Outfielder">
+                  <ToggleGroupItem value="outfielder" aria-label="Toggle Outfielder">
                     Outfielder
                   </ToggleGroupItem>
                 </ToggleGroup>
               </div>
+
+              {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
               <Button type="submit" className="w-full">
                 Create account
