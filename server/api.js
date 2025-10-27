@@ -10,7 +10,7 @@ const auth = require("./middleware/auth");
 const TOKEN_EXPIRATION = 24 * 60 * 60; // 24 hours in seconds
 const COOKIE_EXPIRATION_MS = TOKEN_EXPIRATION * 1000; // convert to milliseconds
 
-router.post("/users/register", async (req, res) => {
+router.post("/user/register", async (req, res) => {
   const { name, email, password, skillLevel, position } = req.body;
   try {
     // check if email already exists
@@ -77,7 +77,7 @@ router.post("/users/register", async (req, res) => {
   }
 });
 
-router.post("/users/login", async (req, res) => {
+router.post("/user/login", async (req, res) => {
   const { email, password } = req.body;
   try {
     // check for existing email
@@ -133,7 +133,7 @@ router.post("/users/login", async (req, res) => {
   }
 });
 
-router.post("/users/logout", (req, res) => {
+router.post("/user/logout", (req, res) => {
   try {
     // Remove token from whitelist
     const token = req.cookies.token;
@@ -154,7 +154,7 @@ router.post("/users/logout", (req, res) => {
   }
 });
 
-router.put("/users/update", auth, async (req, res) => {
+router.put("/user/update", auth, async (req, res) => {
   try {
     const { email, oldPassword, newPassword, ...otherData } = req.body;
     const user = await User.findById(req.user.id);
@@ -196,7 +196,7 @@ router.put("/users/update", auth, async (req, res) => {
   }
 });
 
-router.delete("/users/delete", auth, async (req, res) => {
+router.delete("/user/delete", auth, async (req, res) => {
   try {
     // find user by id and delete
     const user = await User.findByIdAndDelete(req.user.id);
@@ -206,6 +206,30 @@ router.delete("/users/delete", auth, async (req, res) => {
     res.json({ message: "User deleted successfully." });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+router.get("/user/:id", async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: "Server error fetching user." });
+  }
+});
+
+router.get("/user", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password"); 
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: "Server error fetching user." });
   }
 });
 

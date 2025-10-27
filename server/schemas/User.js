@@ -21,7 +21,7 @@ const userSchema = new mongoose.Schema({
   skillLevel: {
     type: Number,
     min: 0,
-    max: 5,
+    max: 4,
     required: [true, "Skill level is required"],
   },
   position: {
