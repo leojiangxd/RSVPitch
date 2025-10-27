@@ -133,12 +133,12 @@ router.post("/user/login", async (req, res) => {
   }
 });
 
-router.post("/user/logout", (req, res) => {
+router.post("/user/logout", async (req, res) => {
   try {
     // Remove token from whitelist
     const token = req.cookies.token;
     if (token)
-      WhitelistedToken.deleteOne({ token }).catch((deleteErr) =>
+      await WhitelistedToken.deleteOne({ token }).catch((deleteErr) =>
         console.error("Failed to remove token from whitelist:", deleteErr)
       );
 
@@ -232,5 +232,12 @@ router.get("/user", auth, async (req, res) => {
     res.status(500).json({ message: "Server error fetching user." });
   }
 });
+
+router.get("/match/:id", async (req, res) => {});
+router.post("/match/create", auth, async (req, res) => {}); // check if user is authenticated
+router.delete("/match/delete", auth, async (req, res) => {}); // check if user is organizer
+router.post("/match/:id/join", auth, async (req, res) => {}); // check if user is authenticated
+router.post("/match/:id/leave", auth, async (req, res) => {}); // check if user is authenticated
+router.post("/match/:id/form-teams", auth, async (req, res) => {}); // check if user is organizer
 
 module.exports = router;
