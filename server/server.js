@@ -1,9 +1,10 @@
-require('dotenv').config();
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
+require("dotenv").config();
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
 
-const apiRoutes = require('./api');
+const apiRoutes = require("./api");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -17,21 +18,22 @@ app.use(
 );
 
 app.use(express.json());
+app.use(cookieParser());
 
-mongoose.connect(MONGODB_URI)
+mongoose
+  .connect(MONGODB_URI)
   .then(() => {
-    console.log('Connected to MongoDB');
+    console.log("Connected to MongoDB");
   })
   .catch((err) => {
-    console.error('MongoDB connection error:', err);
+    console.error("MongoDB connection error:", err);
     process.exit(1);
   });
 
+app.use("/api", apiRoutes);
 
-app.use('/api', apiRoutes);
-
-app.get('/', (req, res) => {
-  res.send('Welcome to the Express MongoDB Backend!');
+app.get("/", (req, res) => {
+  res.send("Welcome to the Express MongoDB Backend!");
 });
 
 app.listen(PORT, () => {
