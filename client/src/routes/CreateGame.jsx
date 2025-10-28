@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Navbar from "../components/Navbar";
@@ -18,6 +18,13 @@ export default function CreateGame() {
   const [cleatsAllowed, setCleatsAllowed] = useState(false);
   const [tacklesAllowed, setTacklesAllowed] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const user = localStorage.getItem("user");
+    if (!user) {
+      navigate("/login");
+    }
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

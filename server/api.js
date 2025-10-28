@@ -223,7 +223,7 @@ router.get("/user/:id", async (req, res) => {
 
 router.get("/user", auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("-password"); 
+    const user = await User.findById(req.user.id).select("-password");
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
@@ -314,9 +314,9 @@ router.get("/match/:id", async (req, res) => {
   try {
     const match = await Match.findById(req.params.id)
       .populate({ path: "organizer", select: "name email skillLevel position" })
-      .populate({ path: "players",   select: "name email skillLevel position" })
-      .populate({ path: "team1",     select: "name email skillLevel position" })
-      .populate({ path: "team2",     select: "name email skillLevel position" });
+      .populate({ path: "players", select: "name email skillLevel position" })
+      .populate({ path: "team1", select: "name email skillLevel position" })
+      .populate({ path: "team2", select: "name email skillLevel position" });
 
     if (!match) return res.status(404).json({ message: "Match not found." });
     res.json(match);
@@ -342,9 +342,9 @@ router.post("/match/create", auth, async (req, res) => {
 
     const populated = await Match.findById(match._id)
       .populate({ path: "organizer", select: "name email skillLevel position" })
-      .populate({ path: "players",   select: "name email skillLevel position" })
-      .populate({ path: "team1",     select: "name email skillLevel position" })
-      .populate({ path: "team2",     select: "name email skillLevel position" });
+      .populate({ path: "players", select: "name email skillLevel position" })
+      .populate({ path: "team1", select: "name email skillLevel position" })
+      .populate({ path: "team2", select: "name email skillLevel position" });
 
     res.status(201).json(populated);
   } catch (err) {
@@ -451,10 +451,10 @@ router.post("/match/:id/form-teams", auth, async (req, res) => {
     await match.save();
 
     const populated = await Match.findById(match._id)
-      .populate({ path: "team1",    select: "name email skillLevel position" })
-      .populate({ path: "team2",    select: "name email skillLevel position" })
-      .populate({ path: "players",  select: "name email skillLevel position" })
-      .populate({ path: "organizer",select: "name email skillLevel position" });
+      .populate({ path: "team1", select: "name email skillLevel position" })
+      .populate({ path: "team2", select: "name email skillLevel position" })
+      .populate({ path: "players", select: "name email skillLevel position" })
+      .populate({ path: "organizer", select: "name email skillLevel position" });
 
     res.json({
       message: "Teams formed.",
@@ -464,6 +464,39 @@ router.post("/match/:id/form-teams", auth, async (req, res) => {
         : "One goalkeeper assigned per team.",
       match: populated
     });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.get("/matches/search", async (req, res) => {
+  try {
+    const { city } = req.query;
+    if (!city) {
+      return res.status(400).json({ message: "City query parameter is required." });
+    }
+
+    const now = new Date();
+    const matches = await Match.find({ cityName: new RegExp(city, "i") })
+      .populate({ path: "organizer", select: "name" })
+      .populate({ path: "players", select: "name" })
+      .lean();
+
+    const upcomingGames = [];
+    const pastOrOngoingGames = [];
+
+    for (const match of matches) {
+      if (new Date(match.startDateTime) > now) {
+        upcomingGames.push(match);
+      } else {
+        pastOrOngoingGames.push(match);
+      }
+    }
+
+    upcomingGames.sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));
+    pastOrOngoingGames.sort((a, b) => new Date(b.startDateTime) - new Date(a.startDateTime));
+
+    res.json([...upcomingGames, ...pastOrOngoingGames]);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
