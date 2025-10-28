@@ -20,10 +20,16 @@ export default function CreateGame() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const user = localStorage.getItem("user");
-    if (!user) {
-      navigate("/login");
-    }
+    const fetchUser = async () => {
+      try {
+        await axios.get(`${import.meta.env.VITE_API_BASE_URL}/user`, {
+          withCredentials: true,
+        });
+      } catch (error) {
+        navigate("/login");
+      }
+    };
+    fetchUser();
   }, [navigate]);
 
   const handleSubmit = async (e) => {
