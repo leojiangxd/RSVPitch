@@ -66,9 +66,11 @@ export default function Navbar() {
         {user ? (
           // LOGGED-IN
           <div className="flex items-center space-x-1">
-            <Button type="create" aria-label="Create a game">
-              <Link to="/creategame">Create a game</Link>
-            </Button>
+            <Link to="/creategame">
+              <Button type="create" aria-label="Create a game">
+                Create a game
+              </Button>
+            </Link>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full cursor-pointer">
@@ -85,9 +87,9 @@ export default function Navbar() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Link to="/edit">Edit Profile</Link>
-                </DropdownMenuItem>
+                <Link to="/edit">
+                  <DropdownMenuItem>Edit Profile</DropdownMenuItem>
+                </Link>
                 <DropdownMenuItem onClick={handleLogout} variant="destructive">
                   Log Out
                 </DropdownMenuItem>
@@ -97,12 +99,12 @@ export default function Navbar() {
         ) : (
           // LOGGED OUT
           <div className="flex gap-1">
-            <Button variant="outline">
-              <Link to="/login">Login</Link>
-            </Button>
-            <Button>
-              <Link to="/register">Register</Link>
-            </Button>
+            <Link to="/login">
+              <Button variant="outline">Login</Button>
+            </Link>
+            <Link to="/register">
+              <Button>Register</Button>
+            </Link>
           </div>
         )}
       </div>
