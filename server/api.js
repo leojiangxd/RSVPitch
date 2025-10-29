@@ -269,45 +269,73 @@ function normalizeMatchCreate(body, organizerId) {
   };
 }
 
-// Helper: simple balanced team formation by skillLevel, with goalie handling
+// Helper: balance by total skill (with goalie split + size cap)
 async function formBalancedTeams(userIds) {
   // Pull users with skill/position
   const users = await User.find({ _id: { $in: userIds } })
     .select("skillLevel position name")
     .lean();
 
-  // Count goalies
+  const skillOf = (u) => (Number.isFinite(u.skillLevel) ? u.skillLevel : 0);
   const isGoalie = (u) => Array.isArray(u.position) && u.position.includes("goalie");
+
   const goalies = users.filter(isGoalie);
   const rotationNeeded = goalies.length < 2;
 
-  // Sort by skill desc
-  users.sort((a, b) => (b.skillLevel ?? 0) - (a.skillLevel ?? 0));
+  // Sort by skill desc (highest first)
+  users.sort((a, b) => skillOf(b) - skillOf(a));
 
   const t1 = [];
   const t2 = [];
+  let t1Skill = 0;
+  let t2Skill = 0;
 
-  // If we have at least 2 goalies, put top 2 on separate teams
+  // If we have at least 2 goalies, put the top 2 on separate teams
   if (goalies.length >= 2) {
-    // pick two strongest goalies
-    const sortedGoalies = [...goalies].sort((a, b) => (b.skillLevel ?? 0) - (a.skillLevel ?? 0));
-    const g1 = sortedGoalies[0]._id.toString();
-    const g2 = sortedGoalies[1]._id.toString();
-    t1.push(g1);
-    t2.push(g2);
+    const sortedGoalies = [...goalies].sort((a, b) => skillOf(b) - skillOf(a));
+    t1.push(sortedGoalies[0]._id.toString());
+    t2.push(sortedGoalies[1]._id.toString());
+    t1Skill += skillOf(sortedGoalies[0]);
+    t2Skill += skillOf(sortedGoalies[1]);
   }
 
-  // Greedy: assign remaining highest-skill to the currently lower-count team
+  // Assign remaining players (highest first) to the team with LOWER total skill
   const assigned = new Set([...t1, ...t2]);
+  const cap = Math.ceil(users.length / 2); // keep team sizes within 1
+
   for (const u of users) {
     const id = u._id.toString();
     if (assigned.has(id)) continue;
-    if (t1.length <= t2.length) t1.push(id);
-    else t2.push(id);
+
+    // If one team hit the cap, force onto the other
+    if (t1.length >= cap) {
+      t2.push(id);
+      t2Skill += skillOf(u);
+      assigned.add(id);
+      continue;
+    }
+    if (t2.length >= cap) {
+      t1.push(id);
+      t1Skill += skillOf(u);
+      assigned.add(id);
+      continue;
+    }
+
+    // Main balancing: lower total skill takes the next best player
+    if (t1Skill <= t2Skill) {
+      t1.push(id);
+      t1Skill += skillOf(u);
+    } else {
+      t2.push(id);
+      t2Skill += skillOf(u);
+    }
+    assigned.add(id);
   }
 
   return { team1: t1, team2: t2, rotationNeeded };
 }
+
+
 
 // GET a match (public)
 router.get("/match/:id", async (req, res) => {
@@ -444,7 +472,9 @@ router.post("/match/:id/form-teams", auth, async (req, res) => {
     }
 
     const playerIds = match.players.map((p) => p._id ? p._id : p);
-    const { team1, team2, rotationNeeded } = await formBalancedTeams(playerIds);
+    const cap = Math.ceil(match.maxPlayers / 2);
+    const { team1, team2, rotationNeeded } = await formBalancedTeams(playerIds, cap);
+
 
     match.team1 = team1;
     match.team2 = team2;
