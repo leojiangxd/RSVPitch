@@ -21,7 +21,7 @@ export default function Searchbar({ widthStyle = "" }) {
     <form onSubmit={handleSubmit} className={`flex justify-center items-center`}>
       <Input
         type="search"
-        placeholder="Enter a Location"
+        placeholder="Search a City"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         className={`mr-1 ${widthStyle}`}

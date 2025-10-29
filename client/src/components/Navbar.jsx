@@ -34,7 +34,11 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     try {
-      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/user/logout`, {}, { withCredentials: true });
+      await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/user/logout`,
+        {},
+        { withCredentials: true }
+      );
     } catch (error) {
       console.error("Logout failed", error);
     } finally {
