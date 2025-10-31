@@ -39,6 +39,27 @@ const matchSchema = new mongoose.Schema({
   ],
   team1: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   team2: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+
+  // Rotating goalkeeper state (for teams without natural goalies)
+  gkRotation: {
+    team1: {
+      active: { type: Boolean, default: false },
+      rotationIntervalMinutes: { type: Number, default: 15 },
+      lastRotatedAt: { type: Date },
+      current: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      order: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+      index: { type: Number, default: 0 }
+    },
+    team2: {
+      active: { type: Boolean, default: false },
+      rotationIntervalMinutes: { type: Number, default: 15 },
+      lastRotatedAt: { type: Date },
+      current: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      order: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+      index: { type: Number, default: 0 }
+    }
+  }
+
 });
 
 module.exports = mongoose.model("Match", matchSchema);

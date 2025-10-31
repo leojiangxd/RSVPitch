@@ -119,6 +119,28 @@
   }
 }
 
+/* === Clickable cursor defaults === */
+@layer base {
+  a[href],
+  button:not([disabled]),
+  [role="button"],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  .clickable,
+  .cursor-pointer {
+    cursor: pointer;
+  }
+
+  /* Keep disabled elements obvious */
+  button[disabled],
+  [aria-disabled="true"],
+  .disabled,
+  .cursor-not-allowed {
+    cursor: not-allowed;
+  }
+}
+
 *:focus {
   box-shadow: none !important;
 }

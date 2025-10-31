@@ -5,3 +5,4 @@ export { default as Login } from "./login.jsx";
 export { default as Register } from "./register.jsx";
 export { default as Edit } from "./edit.jsx";
 export { default as CreateGame } from "./creategame.jsx";
+export { default as JoinedGames } from "./joinedgames.jsx";

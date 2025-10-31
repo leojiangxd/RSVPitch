@@ -1,146 +1,100 @@
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+
 const User = require("./schemas/User.js");
 const Match = require("./schemas/Match.js");
-const WhitelistedToken = require("./schemas/WhitelistedToken.js"); // Import new model
-const jwt = require("jsonwebtoken");
+const WhitelistedToken = require("./schemas/WhitelistedToken.js");
 const auth = require("./middleware/auth");
 
-const TOKEN_EXPIRATION = 24 * 60 * 60; // 24 hours in seconds
-const COOKIE_EXPIRATION_MS = TOKEN_EXPIRATION * 1000; // convert to milliseconds
+const TOKEN_EXPIRATION = 24 * 60 * 60; // 24 hours
+const COOKIE_EXPIRATION_MS = TOKEN_EXPIRATION * 1000;
+
+// users
 
 router.post("/user/register", async (req, res) => {
   const { name, email, password, skillLevel, position } = req.body;
   try {
-    // check if email already exists
     let user = await User.findOne({ email });
     if (user) {
-      return res
-        .status(400)
-        .json({ message: "User with that email already exists." });
+      return res.status(400).json({ message: "User with that email already exists." });
     }
 
-    // hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // save user to db
-    user = new User({
-      name,
-      email,
-      password: hashedPassword,
-      skillLevel,
-      position,
-    });
+    user = new User({ name, email, password: hashedPassword, skillLevel, position });
     await user.save();
 
-    // remove password from the response
     const userResponse = user.toObject();
     delete userResponse.password;
 
-    // Create and return JWT
-    const payload = {
-      user: {
-        id: user.id,
-      },
-    };
+    const payload = { user: { id: user.id } };
+    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: TOKEN_EXPIRATION }, (err, token) => {
+      if (err) throw err;
 
-    jwt.sign(
-      payload,
-      process.env.JWT_SECRET,
-      { expiresIn: TOKEN_EXPIRATION },
-      (err, token) => {
-        if (err) throw err;
+      const expiresAt = new Date(Date.now() + COOKIE_EXPIRATION_MS);
+      const whitelistedToken = new WhitelistedToken({ token, expiresAt });
+      whitelistedToken.save().catch((e) => console.error("Whitelist save failed:", e));
 
-        // Add token to whitelist
-        const expiresAt = new Date(Date.now() + COOKIE_EXPIRATION_MS);
-        const whitelistedToken = new WhitelistedToken({ token, expiresAt });
-        whitelistedToken.save().catch((saveErr) => {
-          console.error("Failed to save token to whitelist:", saveErr);
-        });
-
-        // Set JWT as cookie
-        res
-          .cookie("token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            maxAge: COOKIE_EXPIRATION_MS,
-          })
-          .status(201)
-          .json({ user: userResponse });
-      }
-    );
+      return res
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+          maxAge: COOKIE_EXPIRATION_MS,
+        })
+        .status(201)
+        .json({ user: userResponse });
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    if (!res.headersSent) return res.status(500).json({ message: err.message });
   }
 });
 
 router.post("/user/login", async (req, res) => {
   const { email, password } = req.body;
   try {
-    // check for existing email
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: "Invalid credentials." });
-    }
+    if (!user) return res.status(400).json({ message: "Invalid credentials." });
 
-    // compare hashes
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials." });
-    }
+    if (!isMatch) return res.status(400).json({ message: "Invalid credentials." });
 
-    // remove password from response
     const userResponse = user.toObject();
     delete userResponse.password;
 
-    // Create and return JWT
-    const payload = {
-      user: {
-        id: user.id,
-      },
-    };
+    const payload = { user: { id: user.id } };
+    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: TOKEN_EXPIRATION }, (err, token) => {
+      if (err) throw err;
 
-    jwt.sign(
-      payload,
-      process.env.JWT_SECRET,
-      { expiresIn: TOKEN_EXPIRATION },
-      (err, token) => {
-        if (err) throw err;
+      const expiresAt = new Date(Date.now() + COOKIE_EXPIRATION_MS);
+      const whitelistedToken = new WhitelistedToken({ token, expiresAt });
+      whitelistedToken.save().catch((e) => console.error("Whitelist save failed:", e));
 
-        // Add token to whitelist
-        const expiresAt = new Date(Date.now() + COOKIE_EXPIRATION_MS);
-        const whitelistedToken = new WhitelistedToken({ token, expiresAt });
-        whitelistedToken.save().catch((saveErr) => {
-          console.error("Failed to save token to whitelist:", saveErr);
-        });
-
-        // Set JWT as cookie
-        res
-          .cookie("token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            maxAge: COOKIE_EXPIRATION_MS,
-          })
-          .json({ user: userResponse });
-      }
-    );
+      return res
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+          maxAge: COOKIE_EXPIRATION_MS,
+        })
+        .json({ user: userResponse });
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    if (!res.headersSent) return res.status(500).json({ message: err.message });
   }
 });
 
 router.post("/user/logout", async (req, res) => {
   try {
-    // Remove token from whitelist
-    const token = req.cookies.token;
-    if (token)
-      await WhitelistedToken.deleteOne({ token }).catch((deleteErr) =>
-        console.error("Failed to remove token from whitelist:", deleteErr)
+    const token = req.cookies?.token;
+    if (token) {
+      await WhitelistedToken.deleteOne({ token }).catch((e) =>
+        console.error("Whitelist delete failed:", e)
       );
+    }
 
     res.cookie("token", "", {
       httpOnly: true,
@@ -148,9 +102,9 @@ router.post("/user/logout", async (req, res) => {
       sameSite: "strict",
       expires: new Date(0),
     });
-    res.json({ message: "Logged out successfully." });
+    return res.json({ message: "Logged out successfully." });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    if (!res.headersSent) return res.status(500).json({ message: err.message });
   }
 });
 
@@ -158,11 +112,8 @@ router.put("/user/update", auth, async (req, res) => {
   try {
     const { email, oldPassword, newPassword, ...otherData } = req.body;
     const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
+    if (!user) return res.status(404).json({ message: "User not found." });
 
-    // Update email
     if (email && email !== user.email) {
       const existingEmail = await User.findOne({ email });
       if (existingEmail && existingEmail._id.toString() !== req.user.id) {
@@ -171,95 +122,71 @@ router.put("/user/update", auth, async (req, res) => {
       user.email = email;
     }
 
-    // Update password
     if (oldPassword && newPassword) {
       const isMatch = await bcrypt.compare(oldPassword, user.password);
-      if (!isMatch) {
-        return res.status(400).json({ message: "Incorrect old password." });
-      }
+      if (!isMatch) return res.status(400).json({ message: "Incorrect old password." });
       const salt = await bcrypt.genSalt(10);
       user.password = await bcrypt.hash(newPassword, salt);
     }
 
-    // Update other user data
     Object.assign(user, otherData);
 
-    // Save changes
     const updatedUser = await user.save();
-
-    // Remove password from response
     const userResponse = updatedUser.toObject();
     delete userResponse.password;
-    res.json(userResponse);
+    return res.json(userResponse);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    if (!res.headersSent) return res.status(500).json({ message: err.message });
   }
 });
 
 router.delete("/user/delete", auth, async (req, res) => {
   try {
-    // find user by id and delete
     const user = await User.findByIdAndDelete(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
-    res.json({ message: "User deleted successfully." });
+    if (!user) return res.status(404).json({ message: "User not found." });
+    return res.json({ message: "User deleted successfully." });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    if (!res.headersSent) return res.status(500).json({ message: err.message });
   }
 });
 
 router.get("/user/:id", async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
-    res.json(user);
+    if (!user) return res.status(404).json({ message: "User not found." });
+    return res.json(user);
   } catch (err) {
-    res.status(500).json({ message: "Server error fetching user." });
+    if (!res.headersSent) return res.status(500).json({ message: "Server error fetching user." });
   }
 });
 
 router.get("/user", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
-    res.json(user);
+    if (!user) return res.status(404).json({ message: "User not found." });
+    return res.json(user);
   } catch (err) {
-    res.status(500).json({ message: "Server error fetching user." });
+    if (!res.headersSent) return res.status(500).json({ message: "Server error fetching user." });
   }
 });
 
-// ========================= Match routes =========================
+// matches
 
-// Helper: convert various input shapes to schema fields
+// normalize create payload from old/new field names
 function normalizeMatchCreate(body, organizerId) {
-  const {
-    // old client names:
-    city, field, date, time,
-    // new schema names:
-    cityName, fieldName, startDateTime,
-    maxPlayers, rules, cleatsAllowed, tacklesAllowed
-  } = body;
+  const { city, field, date, time, cityName, fieldName, startDateTime, maxPlayers, cleatsAllowed, tacklesAllowed } = body;
 
   const normalizedCity = cityName || city;
   const normalizedField = fieldName || field;
 
   let normalizedStart = startDateTime;
-  if (!normalizedStart && date && time) {
-    // Build ISO datetime from date & time
-    normalizedStart = `${date}T${time}:00`;
-  }
+  if (!normalizedStart && date && time) normalizedStart = `${date}T${time}:00`;
 
   return {
     cityName: normalizedCity,
     fieldName: normalizedField,
     startDateTime: normalizedStart ? new Date(normalizedStart) : undefined,
     maxPlayers,
-    // store optional flags if present; you can add `rules` to schema later if desired
     cleatsAllowed: typeof cleatsAllowed === "boolean" ? cleatsAllowed : undefined,
     tacklesAllowed: typeof tacklesAllowed === "boolean" ? tacklesAllowed : undefined,
     organizer: organizerId,
@@ -269,28 +196,30 @@ function normalizeMatchCreate(body, organizerId) {
   };
 }
 
-// Helper: balance by total skill (with goalie split + size cap)
-async function formBalancedTeams(userIds) {
-  // Pull users with skill/position
+// balancing helpers
+function isGoalkeeperPosition(pos) {
+  if (!pos) return false;
+  const arr = Array.isArray(pos) ? pos : [pos];
+  return arr.some((p) => {
+    const s = String(p).toLowerCase().trim();
+    return /\bgk\b/.test(s) || /\bgoal\s*keeper\b/.test(s) || /\bgoalie\b/.test(s) || /\bkeeper\b/.test(s);
+  });
+}
+
+async function formBalancedTeams(userIds, capOverride) {
   const users = await User.find({ _id: { $in: userIds } })
     .select("skillLevel position name")
     .lean();
 
   const skillOf = (u) => (Number.isFinite(u.skillLevel) ? u.skillLevel : 0);
-  const isGoalie = (u) => Array.isArray(u.position) && u.position.includes("goalie");
-
-  const goalies = users.filter(isGoalie);
+  const goalies = users.filter((u) => isGoalkeeperPosition(u.position));
   const rotationNeeded = goalies.length < 2;
 
-  // Sort by skill desc (highest first)
   users.sort((a, b) => skillOf(b) - skillOf(a));
 
-  const t1 = [];
-  const t2 = [];
-  let t1Skill = 0;
-  let t2Skill = 0;
+  const t1 = [], t2 = [];
+  let t1Skill = 0, t2Skill = 0;
 
-  // If we have at least 2 goalies, put the top 2 on separate teams
   if (goalies.length >= 2) {
     const sortedGoalies = [...goalies].sort((a, b) => skillOf(b) - skillOf(a));
     t1.push(sortedGoalies[0]._id.toString());
@@ -299,70 +228,129 @@ async function formBalancedTeams(userIds) {
     t2Skill += skillOf(sortedGoalies[1]);
   }
 
-  // Assign remaining players (highest first) to the team with LOWER total skill
   const assigned = new Set([...t1, ...t2]);
-  const cap = Math.ceil(users.length / 2); // keep team sizes within 1
+  const cap = capOverride || Math.ceil(users.length / 2);
 
   for (const u of users) {
     const id = u._id.toString();
     if (assigned.has(id)) continue;
 
-    // If one team hit the cap, force onto the other
-    if (t1.length >= cap) {
-      t2.push(id);
-      t2Skill += skillOf(u);
-      assigned.add(id);
-      continue;
-    }
-    if (t2.length >= cap) {
-      t1.push(id);
-      t1Skill += skillOf(u);
-      assigned.add(id);
-      continue;
-    }
+    if (t1.length >= cap) { t2.push(id); t2Skill += skillOf(u); assigned.add(id); continue; }
+    if (t2.length >= cap) { t1.push(id); t1Skill += skillOf(u); assigned.add(id); continue; }
 
-    // Main balancing: lower total skill takes the next best player
-    if (t1Skill <= t2Skill) {
-      t1.push(id);
-      t1Skill += skillOf(u);
-    } else {
-      t2.push(id);
-      t2Skill += skillOf(u);
-    }
+    if (t1Skill <= t2Skill) { t1.push(id); t1Skill += skillOf(u); }
+    else { t2.push(id); t2Skill += skillOf(u); }
     assigned.add(id);
   }
 
   return { team1: t1, team2: t2, rotationNeeded };
 }
 
+// GK rotation helpers
+function shuffleInPlace(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+  }
+  return arr;
+}
 
+async function teamHasNaturalGoalie(ids) {
+  if (!ids || !ids.length) return false;
+  const users = await User.find({ _id: { $in: ids } }).select("position").lean();
+  return users.some((u) => isGoalkeeperPosition(u.position));
+}
 
-// GET a match (public)
+function ensureGKContainer(match) {
+  if (!match.gkRotation) match.gkRotation = {};
+  if (!match.gkRotation.team1) match.gkRotation.team1 = { active:false, rotationIntervalMinutes:15, lastRotatedAt:null, current:null, order:[], index:0 };
+  if (!match.gkRotation.team2) match.gkRotation.team2 = { active:false, rotationIntervalMinutes:15, lastRotatedAt:null, current:null, order:[], index:0 };
+}
+
+async function initGKRotationForTeam(match, teamKey) {
+  ensureGKContainer(match);
+  const ids = (match[teamKey] || []).map((x) => x.toString());
+
+  if (!ids.length) { match.gkRotation[teamKey] = { ...match.gkRotation[teamKey], active:false, current:null, order:[], index:0, lastRotatedAt:null }; return; }
+  const hasGK = await teamHasNaturalGoalie(ids);
+
+  if (hasGK) { match.gkRotation[teamKey] = { ...match.gkRotation[teamKey], active:false, current:null, order:[], index:0, lastRotatedAt:null, rotationIntervalMinutes:15 }; return; }
+  const order = shuffleInPlace([].concat(ids));
+  match.gkRotation[teamKey] = { active:true, rotationIntervalMinutes:15, lastRotatedAt:new Date(), current:order[0]||null, order, index: order.length>1?1:0 };
+}
+
+async function rotateGKsIfDue(match) {
+  if (!match) return;
+  ensureGKContainer(match);
+  const now = Date.now();
+  ["team1","team2"].forEach((teamKey) => {
+    const rot = match.gkRotation[teamKey];
+
+    if (!rot || !rot.active) return;
+    const teamIds = (match[teamKey] || []).map((id) => id.toString());
+    const teamSet = new Set(teamIds);
+
+    if (teamSet.size === 0) { rot.active=false; rot.current=null; rot.order=[]; rot.index=0; rot.lastRotatedAt=null; return; }
+    rot.order = (rot.order || []).filter((id) => teamSet.has(String(id)));
+
+    if (!rot.order.length) { rot.order = shuffleInPlace([].concat(teamIds)); rot.index = 0; }
+    if (rot.index >= rot.order.length) rot.index = 0;
+
+    const intervalMs = ((rot.rotationIntervalMinutes || 15) * 60 * 1000) >>> 0;
+    const last = rot.lastRotatedAt ? new Date(rot.lastRotatedAt).getTime() : 0;
+    const due = !last || now - last >= intervalMs;
+    const currentMissing = !rot.current || !teamSet.has(String(rot.current));
+
+    if (due || currentMissing) {
+      rot.current = rot.order[rot.index] || null;
+      rot.index = (rot.index + 1) % rot.order.length;
+      rot.lastRotatedAt = new Date(now);
+    }
+  });
+  await match.save();
+}
+
+// ROUTES HERE
+
+// GET a match. rotate lazily iff teams alr exist
 router.get("/match/:id", async (req, res) => {
   try {
+    const doc = await Match.findById(req.params.id);
+    if (!doc) return res.status(404).json({ message: "Match not found." });
+
+    // only advance rotation if teams already formed (nonempty arrays)
+    const teamsExist =
+      Array.isArray(doc.team1) && doc.team1.length > 0 ||
+      Array.isArray(doc.team2) && doc.team2.length > 0;
+
+    if (teamsExist && doc.gkRotation && (
+        (doc.gkRotation.team1 && doc.gkRotation.team1.active) ||
+        (doc.gkRotation.team2 && doc.gkRotation.team2.active)
+      )) {
+      await rotateGKsIfDue(doc);
+    }
+
     const match = await Match.findById(req.params.id)
       .populate({ path: "organizer", select: "name email skillLevel position" })
       .populate({ path: "players", select: "name email skillLevel position" })
       .populate({ path: "team1", select: "name email skillLevel position" })
-      .populate({ path: "team2", select: "name email skillLevel position" });
+      .populate({ path: "team2", select: "name email skillLevel position" })
+      .lean();
 
-    if (!match) return res.status(404).json({ message: "Match not found." });
-    res.json(match);
+    return res.json(match);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("GET /match/:id error:", err);
+    if (!res.headersSent) return res.status(500).json({ message: err.message });
   }
 });
 
-// CREATE a match (auth required)
+
+// CREATE a match
 router.post("/match/create", auth, async (req, res) => {
   try {
     const payload = normalizeMatchCreate(req.body, req.user.id);
-
     if (!payload.cityName || !payload.fieldName || !payload.startDateTime || !payload.maxPlayers) {
-      return res.status(400).json({
-        message:
-          "city, field, date, time, maxPlayers are required (or use cityName, fieldName, startDateTime).",
-      });
+      return res.status(400).json({ message: "city, field, date, time, maxPlayers are required (or use cityName, fieldName, startDateTime)." });
     }
 
     const match = new Match(payload);
@@ -372,15 +360,16 @@ router.post("/match/create", auth, async (req, res) => {
       .populate({ path: "organizer", select: "name email skillLevel position" })
       .populate({ path: "players", select: "name email skillLevel position" })
       .populate({ path: "team1", select: "name email skillLevel position" })
-      .populate({ path: "team2", select: "name email skillLevel position" });
+      .populate({ path: "team2", select: "name email skillLevel position" })
+      .lean();
 
-    res.status(201).json(populated);
+    return res.status(201).json(populated);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    if (!res.headersSent) return res.status(500).json({ message: err.message });
   }
 });
 
-// DELETE a match (organizer only)
+// DELETE a match
 router.delete("/match/delete", auth, async (req, res) => {
   try {
     const { id } = req.query;
@@ -394,24 +383,23 @@ router.delete("/match/delete", auth, async (req, res) => {
     }
 
     await Match.findByIdAndDelete(id);
-    res.json({ message: "Match deleted successfully." });
+    return res.json({ message: "Match deleted successfully." });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    if (!res.headersSent) return res.status(500).json({ message: err.message });
   }
 });
 
-// JOIN a match (auth required)
+// JOIN a match
 router.post("/match/:id/join", auth, async (req, res) => {
   try {
     const match = await Match.findById(req.params.id);
     if (!match) return res.status(404).json({ message: "Match not found." });
 
-    // already in?
     const uid = req.user.id;
-    const already = match.players.some((p) => p.toString() === uid);
-    if (already) return res.status(400).json({ message: "Already joined." });
+    if (match.players.some((p) => p.toString() === uid)) {
+      return res.status(400).json({ message: "Already joined." });
+    }
 
-    // capacity check
     if (match.players.length >= match.maxPlayers) {
       return res.status(400).json({ message: "Match is full." });
     }
@@ -420,44 +408,43 @@ router.post("/match/:id/join", auth, async (req, res) => {
     await match.save();
 
     const populated = await Match.findById(match._id)
-      .populate({ path: "players", select: "name email skillLevel position" });
+      .populate({ path: "players", select: "name email skillLevel position" })
+      .lean();
 
-    res.json({ message: "Joined match successfully.", match: populated });
+    return res.json({ message: "Joined match successfully.", match: populated });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    if (!res.headersSent) return res.status(500).json({ message: err.message });
   }
 });
 
-// LEAVE a match (auth required)
+// LEAVE a match
 router.post("/match/:id/leave", auth, async (req, res) => {
   try {
     const match = await Match.findById(req.params.id);
     if (!match) return res.status(404).json({ message: "Match not found." });
 
     const uid = req.user.id;
-    // organizer cannot leave (or you can transfer ownership as an enhancement)
     if (match.organizer.toString() === uid) {
       return res.status(400).json({ message: "Organizer cannot leave their own match." });
     }
 
     const before = match.players.length;
     match.players = match.players.filter((p) => p.toString() !== uid);
-    const after = match.players.length;
+    if (before === match.players.length) {
+      return res.status(400).json({ message: "You are not in this match." });
+    }
 
-    if (before === after) return res.status(400).json({ message: "You are not in this match." });
-
-    // also remove from teams
     match.team1 = match.team1.filter((p) => p.toString() !== uid);
     match.team2 = match.team2.filter((p) => p.toString() !== uid);
 
     await match.save();
-    res.json({ message: "Left match successfully." });
+    return res.json({ message: "Left match successfully." });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    if (!res.headersSent) return res.status(500).json({ message: err.message });
   }
 });
 
-// FORM TEAMS (organizer only)
+// form teams
 router.post("/match/:id/form-teams", auth, async (req, res) => {
   try {
     const match = await Match.findById(req.params.id).populate("players", "skillLevel position");
@@ -471,40 +458,43 @@ router.post("/match/:id/form-teams", auth, async (req, res) => {
       return res.status(400).json({ message: "Need at least 2 players to form teams." });
     }
 
-    const playerIds = match.players.map((p) => p._id ? p._id : p);
+    const playerIds = match.players.map((p) => (p._id ? p._id : p));
     const cap = Math.ceil(match.maxPlayers / 2);
     const { team1, team2, rotationNeeded } = await formBalancedTeams(playerIds, cap);
 
-
     match.team1 = team1;
     match.team2 = team2;
+
+    await initGKRotationForTeam(match, "team1");
+    await initGKRotationForTeam(match, "team2");
+
     await match.save();
 
     const populated = await Match.findById(match._id)
       .populate({ path: "team1", select: "name email skillLevel position" })
       .populate({ path: "team2", select: "name email skillLevel position" })
       .populate({ path: "players", select: "name email skillLevel position" })
-      .populate({ path: "organizer", select: "name email skillLevel position" });
+      .populate({ path: "organizer", select: "name email skillLevel position" })
+      .lean();
 
-    res.json({
+    return res.json({
       message: "Teams formed.",
       rotationNeeded,
       rotationNote: rotationNeeded
         ? "Not enough goalies for both teams. Rotate goalie every 15 minutes."
         : "One goalkeeper assigned per team.",
-      match: populated
+      match: populated,
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    if (!res.headersSent) return res.status(500).json({ message: err.message });
   }
 });
 
+// Search matches by city
 router.get("/matches/search", async (req, res) => {
   try {
     const { city } = req.query;
-    if (!city) {
-      return res.status(400).json({ message: "City query parameter is required." });
-    }
+    if (!city) return res.status(400).json({ message: "City query parameter is required." });
 
     const now = new Date();
     const matches = await Match.find({ cityName: new RegExp(city, "i") })
@@ -512,24 +502,49 @@ router.get("/matches/search", async (req, res) => {
       .populate({ path: "players", select: "name" })
       .lean();
 
-    const upcomingGames = [];
-    const pastOrOngoingGames = [];
+    const upcoming = [], pastOrOngoing = [];
+    for (const m of matches) {
+      if (new Date(m.startDateTime) > now) upcoming.push(m);
+      else pastOrOngoing.push(m);
+    }
+    upcoming.sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));
+    pastOrOngoing.sort((a, b) => new Date(b.startDateTime) - new Date(a.startDateTime));
 
-    for (const match of matches) {
-      if (new Date(match.startDateTime) > now) {
-        upcomingGames.push(match);
-      } else {
-        pastOrOngoingGames.push(match);
-      }
+    return res.json([...upcoming, ...pastOrOngoing]);
+  } catch (err) {
+    if (!res.headersSent) return res.status(500).json({ message: err.message });
+  }
+});
+
+// GET the current user's created or joined matches (auth required)
+router.get("/matches/my", auth, async (req, res) => {
+  try {
+    const uid = req.user.id;
+
+    const matches = await Match.find({
+      $or: [{ organizer: uid }, { players: uid }],
+    })
+      .populate({ path: "organizer", select: "name" })
+      .populate({ path: "players", select: "name" })
+      .lean();
+
+    const now = new Date();
+    const upcoming = [];
+    const past = [];
+
+    for (const m of matches) {
+      if (new Date(m.startDateTime) >= now) upcoming.push(m);
+      else past.push(m);
     }
 
-    upcomingGames.sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));
-    pastOrOngoingGames.sort((a, b) => new Date(b.startDateTime) - new Date(a.startDateTime));
+    upcoming.sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));
+    past.sort((a, b) => new Date(b.startDateTime) - new Date(a.startDateTime));
 
-    res.json([...upcomingGames, ...pastOrOngoingGames]);
+    res.json([...upcoming, ...past]);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
+
 
 module.exports = router;

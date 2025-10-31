@@ -66,11 +66,13 @@ export default function Navbar() {
         {user ? (
           // LOGGED-IN
           <div className="flex items-center space-x-1">
-            <Link to="/creategame">
-              <Button type="create" aria-label="Create a game">
-                Create a game
-              </Button>
-            </Link>
+            <Button asChild className="transition-none focus-visible:ring-0 focus-visible:outline-none">
+              <Link to="/creategame" aria-label="Create a Game">Create Game</Link>
+            </Button>
+
+            <Button asChild variant="outline" className="transition-none focus-visible:ring-0 focus-visible:outline-none">
+              <Link to="/joinedgames" aria-label="My Games">My Games</Link>
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full cursor-pointer">
