@@ -66,11 +66,11 @@ export default function Navbar() {
         {user ? (
           // LOGGED-IN
           <div className="flex items-center space-x-1">
-            <Button asChild className="transition-none focus-visible:ring-0 focus-visible:outline-none">
+            <Button asChild className="transition-none focus-visible:ring-0 focus-visible:outline-none hidden md:inline-flex">
               <Link to="/creategame" aria-label="Create a Game">Create Game</Link>
             </Button>
 
-            <Button asChild variant="outline" className="transition-none focus-visible:ring-0 focus-visible:outline-none">
+            <Button asChild variant="outline" className="transition-none focus-visible:ring-0 focus-visible:outline-none hidden md:inline-flex">
               <Link to="/joinedgames" aria-label="My Games">My Games</Link>
             </Button>
             <DropdownMenu>
@@ -89,6 +89,14 @@ export default function Navbar() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <div className="md:hidden">
+                  <Link to="/creategame">
+                    <DropdownMenuItem>Create Game</DropdownMenuItem>
+                  </Link>
+                  <Link to="/joinedgames">
+                    <DropdownMenuItem>My Games</DropdownMenuItem>
+                  </Link>
+                </div>
                 <Link to="/edit">
                   <DropdownMenuItem>Edit Profile</DropdownMenuItem>
                 </Link>
