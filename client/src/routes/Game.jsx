@@ -163,6 +163,23 @@ export default function Game() {
       ? game.players.length >= game.maxPlayers && !isPlayer
       : false;
 
+      const getSkillLevelName = (level) => {
+        switch (level) {
+      case 0:
+        return "New";
+      case 1:
+        return "Novice";
+      case 2:
+        return "Intermediate";
+      case 3:
+        return "Advanced";
+      case 4:
+        return "Pro";
+      default:
+        return "Unknown";
+    }
+  };
+  
   // Only render teams (and GK UI) after organizer has formed them
   const hasTeams =
     (Array.isArray(game.team1) && game.team1.length > 0) ||
@@ -201,24 +218,26 @@ export default function Game() {
 
   const renderTeam = (team, teamName, teamKey) => (
     <div>
-      <h2 className="text-2xl font-semibold border-b pb-2">{teamName}</h2>
+      <div className="flex justify-between items-baseline border-b pb-2">
+        <h2 className="text-2xl font-semibold">{teamName}</h2>
 
-      {/* Countdown for rotating GK (only when active) */}
-      {game?.gkRotation?.[teamKey]?.active && (
-        <p className="text-xs text-muted-foreground mt-1">
-          Next GK rotation in{" "}
-          {(() => {
-            const rot = game?.gkRotation?.[teamKey];
-            if (!rot?.lastRotatedAt) return "15m 0s";
-            const intervalMs = (rot.rotationIntervalMinutes || 15) * 60 * 1000;
-            const nextTime = new Date(rot.lastRotatedAt).getTime() + intervalMs;
-            const remaining = Math.max(0, nextTime - nowTs);
-            const mins = Math.floor(remaining / 60000);
-            const secs = Math.floor((remaining % 60000) / 1000);
-            return `${mins}m ${secs}s`;
-          })()}
-        </p>
-      )}
+        {/* Countdown for rotating GK (only when active) */}
+        {game?.gkRotation?.[teamKey]?.active && (
+          <p className="text-xs text-muted-foreground">
+            Next goalie rotation in{" "}
+            {(() => {
+              const rot = game?.gkRotation?.[teamKey];
+              if (!rot?.lastRotatedAt) return "15m 0s";
+              const intervalMs = (rot.rotationIntervalMinutes || 15) * 60 * 1000;
+              const nextTime = new Date(rot.lastRotatedAt).getTime() + intervalMs;
+              const remaining = Math.max(0, nextTime - nowTs);
+              const mins = Math.floor(remaining / 60000);
+              const secs = Math.floor((remaining % 60000) / 1000);
+              return `${mins}m ${secs}s`;
+            })()}
+          </p>
+        )}
+      </div>
 
       <div className="space-y-2 mt-4">
         {Array.isArray(team) &&
@@ -241,12 +260,12 @@ export default function Game() {
                     String(game?.gkRotation?.[teamKey]?.current) ===
                       String(player?._id) && (
                       <Badge className="bg-yellow-600 font-bold">
-                        ASSIGNED GK
+                        ASSIGNED GOALIE
                       </Badge>
                     )}
 
                   <span className="text-xs font-bold text-muted-foreground">
-                    {(player?.skillLevel ?? 0).toString().toUpperCase()}
+                    {getSkillLevelName(player?.skillLevel ?? 0).toUpperCase()}
                   </span>
                 </div>
 
@@ -346,62 +365,73 @@ export default function Game() {
 
             <div className="flex items-center">
               <Footprints className="h-5 w-5 mr-3 text-muted-foreground" />
-              <span>{game.cleatsAllowed ? "Cleats allowed" : "Cleats not allowed"}</span>
+              <span>
+                Cleats{" "}
+                <span className={`font-bold ${game.cleatsAllowed ? "text-green-500" : "text-red-500"}`}>
+                  {game.cleatsAllowed ? "allowed" : "not allowed"}
+                </span>
+              </span>
             </div>
 
             <div className="flex items-center">
               <Shield className="h-5 w-5 mr-3 text-muted-foreground" />
-              <span>{game.tacklesAllowed ? "Slide tackles allowed" : "Slide tackles not allowed"}</span>
+              <span>
+                Slide tackles{" "}
+                <span className={`font-bold ${game.tacklesAllowed ? "text-green-500" : "text-red-500"}`}>
+                  {game.tacklesAllowed ? "allowed" : "not allowed"}
+                </span>
+              </span>
             </div>
           </div>
 
-          {/* Teams grid: only render after teams are formed */}
-          {hasTeams ? (
-              <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="md:col-span-3">
+            <h2 className="text-2xl font-semibold border-b pb-2">
+              Players Joined ({Array.isArray(game.players) ? game.players.length : 0})
+            </h2>
+            <div className="space-y-2 mt-4">
+              {Array.isArray(game.players) &&
+                game.players.map((player) => {
+                  const positions = Array.isArray(player?.position)
+                    ? player.position
+                    : player?.position
+                    ? [player.position]
+                    : [];
+                  return (
+                    <div
+                      key={player?._id || String(player)}
+                      className="bg-zinc-800 p-3 text-sm font-medium flex justify-between items-center"
+                    >
+                      <div className="space-x-4">
+                        <span>{player?.name || "Unknown Player"}</span>
+                        <span className="text-xs font-bold text-muted-foreground">
+                          {getSkillLevelName(player?.skillLevel ?? 0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="flex gap-2">
+                          {positions.map((pos) => (
+                            <Badge key={pos} className={`${getBadgeColor(pos)} font-bold`}>
+                              {String(pos).toUpperCase()}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+
+        {/* Teams grid: only render after teams are formed */}
+        {hasTeams && (
+          <div className="mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {renderTeam(game.team1 || [], "Team 1", "team1")}
               {renderTeam(game.team2 || [], "Team 2", "team2")}
             </div>
-          ) : (
-            // ✅ BEFORE teams are formed: show the "Players Joined" list
-            <div className="md:col-span-3">
-              <h2 className="text-2xl font-semibold border-b pb-2">
-                Players Joined ({Array.isArray(game.players) ? game.players.length : 0})
-              </h2>
-              <div className="space-y-2 mt-4">
-                {Array.isArray(game.players) &&
-                  game.players.map((player) => {
-                    const positions = Array.isArray(player?.position)
-                      ? player.position
-                      : player?.position
-                      ? [player.position]
-                      : [];
-                    return (
-                      <div
-                        key={player?._id || String(player)}
-                        className="bg-zinc-800 p-3 text-sm font-medium flex justify-between items-center"
-                      >
-                        <div className="space-x-4">
-                          <span>{player?.name || "Unknown Player"}</span>
-                          <span className="text-xs font-bold text-muted-foreground">
-                            {(player?.skillLevel ?? 0).toString().toUpperCase()}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="flex gap-2">
-                            {positions.map((pos) => (
-                              <Badge key={pos} className={`${getBadgeColor(pos)} font-bold`}>
-                                {String(pos).toUpperCase()}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <div className="sticky bottom-0 w-full bg-background border-t p-4 flex flex-col items-center">

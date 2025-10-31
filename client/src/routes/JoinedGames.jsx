@@ -28,17 +28,15 @@ export default function JoinedGames() {
   return (
     <div className="min-h-screen bg-muted flex flex-col">
       <Navbar />
-
-      <div className="flex-1 container mx-auto p-6">
-        <h1 className="text-3xl font-extrabold mb-6">My Games</h1>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="flex-1">
+        <div className="pt-4 text-center text-lg font-bold">
+          My Games
+        </div>
+        <div className="flex flex-col gap-4 max-w-3xl mx-auto p-4">
           {error ? (
-            <div className="col-span-full text-center p-10 text-destructive">
-              {error}
-            </div>
+            <div className="text-center p-10 text-destructive">{error}</div>
           ) : games.length === 0 ? (
-            <div className="col-span-full text-center p-10">
+            <div className="text-center p-10">
               You haven’t joined or created any games yet.
             </div>
           ) : (

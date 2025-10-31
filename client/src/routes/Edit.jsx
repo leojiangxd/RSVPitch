@@ -24,17 +24,19 @@ export default function Edit() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUserData = async () => {
+      setIsLoading(true);
       try {
         const { data: user } = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/user`, {
           withCredentials: true,
         });
         setName(user.name || "");
         setEmail(user.email || "");
-        setSkillLevel(user.skillLevel || 2);
+        setSkillLevel(typeof user.skillLevel === "number" ? user.skillLevel : 2);
         setPosition(user.position || []);
       } catch (err) {
         console.error("Failed to fetch user data:", err);
@@ -61,9 +63,13 @@ export default function Edit() {
     }
 
     try {
-      const response = await axios.put(`${import.meta.env.VITE_API_BASE_URL}/user/update`, payload, {
-        withCredentials: true,
-      });
+      const response = await axios.put(
+        `${import.meta.env.VITE_API_BASE_URL}/user/update`,
+        payload,
+        {
+          withCredentials: true,
+        }
+      );
 
       localStorage.setItem("user", JSON.stringify(response.data));
       window.dispatchEvent(new Event("storage"));
